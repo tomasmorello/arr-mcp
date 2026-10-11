@@ -70,7 +70,10 @@ export const ICONS: Record<ServiceId, string> = {
     // old mark (lines plus a jagged trend) read as analytics instead.
     profilarr: draw(
         '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="17" r="2"/>'
-    )
+    ),
+    // A beamed pair of notes: the only service here whose category is music,
+    // so the mark says that rather than "downloader", which three others say.
+    tidarr: draw('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>')
 };
 
 /**

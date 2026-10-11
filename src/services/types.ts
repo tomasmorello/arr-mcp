@@ -322,6 +322,10 @@ export type QueueItem = {
     private?: boolean;
     /** Torrent clients only, and only once the download has finished. */
     seeding?: SeedingState;
+    /** Tidarr only: what the row is on Tidal — `album`, `track`, `playlist`… */
+    mediaType?: string;
+    /** Tidarr only: the audio quality asked for, `low` to `max`. */
+    quality?: string;
 };
 
 /**
@@ -1087,14 +1091,22 @@ export interface QueueRemoveCapable {
     removeQueueItem(id: string, opts: RemoveQueueOptions): Promise<void>;
     /** True when this service can actually honour `blocklist`. */
     readonly supportsBlocklist: boolean;
+    /**
+     * True when removal always deletes partial data, whatever
+     * `removeFromClient` says — Tidarr has no other kind. Lets
+     * `remove_queue_item` describe what will happen rather than what was asked.
+     */
+    readonly removalDeletesData?: boolean;
 }
 
 export const hasQueueRemove = (a: ServiceAdapter): a is ServiceAdapter & QueueRemoveCapable =>
     typeof (a as Partial<QueueRemoveCapable>).removeQueueItem === 'function';
 
 /** What a client reports about its own paused state, and what that state is
- *  *of* — "the SABnzbd queue", "2 torrents" — so a preview can say it. */
-export type PauseState = { paused: boolean; scope: string };
+ *  *of* — "the SABnzbd queue", "2 torrents" — so a preview can say it.
+ *  `pauseNote` replaces the generic "nothing is lost" line, for a client where
+ *  pausing does lose the download in progress. */
+export type PauseState = { paused: boolean; scope: string; pauseNote?: string };
 
 /**
  * Stopping and restarting a download client.
@@ -1112,6 +1124,59 @@ export interface PauseCapable {
 
 export const hasPause = (a: ServiceAdapter): a is ServiceAdapter & PauseCapable =>
     typeof (a as Partial<PauseCapable>).setPaused === 'function';
+
+/** Tidarr's four, lowest to highest: AAC 96, AAC 320, 16-bit FLAC, 24-bit FLAC. */
+export const TIDAL_QUALITIES = ['low', 'normal', 'high', 'max'] as const;
+export type TidalQuality = (typeof TIDAL_QUALITIES)[number];
+
+/** One thing on Tidal, as a validated URL resolved it. */
+export type TidalItem = { type: string; id: string };
+
+export type MusicQueueState = {
+    service: string;
+    paused: boolean;
+    /** Items downloaded in the current batch, when batching is configured. */
+    batchCount?: number;
+    /** When a batch pause lifts by itself, ISO. */
+    batchResumeAt?: string;
+};
+
+/**
+ * Downloading from Tidal into the music library. Tidarr alone; separate from
+ * `QueueCapable` because adding to a download client by URL is something no
+ * other client here is asked to do — the *arrs grab, the clients receive.
+ */
+export interface MusicQueueCapable {
+    readQueueState(): Promise<MusicQueueState>;
+    /** Every row, finished ones included. */
+    readQueueItems(): Promise<QueueItem[]>;
+    addToQueue(item: TidalItem, quality?: TidalQuality): Promise<void>;
+    retryPostProcessing(id: string): Promise<void>;
+}
+
+export const hasMusicQueue = (a: ServiceAdapter): a is ServiceAdapter & MusicQueueCapable =>
+    typeof (a as Partial<MusicQueueCapable>).addToQueue === 'function';
+
+/** A playlist Tidarr re-downloads on a schedule, picking up what was added to it. */
+export type MusicSyncItem = {
+    service: string;
+    id: string;
+    type: string;
+    title: string; // fenced
+    quality?: TidalQuality;
+    lastUpdate?: string;
+    paused?: true;
+};
+
+export interface MusicSyncCapable {
+    readSyncList(): Promise<MusicSyncItem[]>;
+    addToSyncList(item: TidalItem, title: string, quality: TidalQuality): Promise<void>;
+    removeFromSyncList(id: string): Promise<void>;
+    triggerSync(): Promise<void>;
+}
+
+export const hasMusicSync = (a: ServiceAdapter): a is ServiceAdapter & MusicSyncCapable =>
+    typeof (a as Partial<MusicSyncCapable>).readSyncList === 'function';
 
 /**
  * The download cap, always **KB/s at this boundary** whatever the client

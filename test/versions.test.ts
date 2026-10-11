@@ -145,7 +145,10 @@ describe('assertVersionSupported against captured evidence', () => {
         qbittorrent: (read('test/fixtures/qbittorrent/version.json') as { version: string }).version,
         plex: '1.0.0',
         whisparr: (read('test/fixtures/whisparr/system-status.json') as { version: string }).version,
-        profilarr: (read('test/fixtures/profilarr/status.json') as { version: string }).version
+        profilarr: (read('test/fixtures/profilarr/status.json') as { version: string }).version,
+        // Not captured, and cannot be: Tidarr reports its version only beside
+        // its Tidal tokens, which nothing here reads. Upstream's current release.
+        tidarr: '1.2.8'
     };
 
     for (const [service, version] of Object.entries(captured)) {

@@ -45,7 +45,11 @@ export const MINIMUM_VERSIONS: Record<ServiceId, string> = {
     plex: '1.0.0',
     // 2.2.0 is the release this adapter's /api/v1 contract is written against,
     // and the tag the vendored spec is pinned to.
-    profilarr: '2.2.0'
+    profilarr: '2.2.0',
+    // 1.2.7 added `/api/retry-post-processing` and `errorStage`, both of which
+    // this adapter reads. Not enforced: Tidarr reports its version only next to
+    // its Tidal tokens, which the adapter never fetches — see `TidarrAdapter`.
+    tidarr: '1.2.7'
 };
 
 /** Digits only; a build suffix such as Transmission's "(838877323f)" is dropped. */

@@ -10,6 +10,7 @@ import { RadarrAdapter } from './radarr.ts';
 import { SabnzbdAdapter } from './sabnzbd.ts';
 import { SeerrAdapter } from './seerr.ts';
 import { SonarrAdapter } from './sonarr.ts';
+import { TidarrAdapter } from './tidarr.ts';
 import { TransmissionAdapter } from './transmission.ts';
 import { WhisparrAdapter } from './whisparr.ts';
 import type { ServiceAdapter } from './types.ts';
@@ -70,5 +71,7 @@ function buildAdapter(instance: ServiceInstance): ServiceAdapter {
             return new PlexAdapter(instance.config);
         case 'whisparr':
             return new WhisparrAdapter(instance.config);
+        case 'tidarr':
+            return new TidarrAdapter(instance.config);
     }
 }

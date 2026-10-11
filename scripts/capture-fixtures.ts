@@ -958,6 +958,14 @@ const ENDPOINTS: Record<ServiceId, Endpoint[]> = {
         { name: 'status', path: '/api/v1/status' },
         { name: 'arr', path: '/api/v1/arr' },
         { name: 'health', path: '/api/v1/health' }
+    ],
+    // The three reads the adapter makes, and nothing near them: /api/settings
+    // and /api/tiddl/config carry the Tidal tokens, which no redaction pass
+    // here knows the values of and so could not be trusted to remove.
+    tidarr: [
+        { name: 'queue-status', path: '/api/queue/status' },
+        { name: 'queue-list', path: '/api/queue/list' },
+        { name: 'sync-list', path: '/api/sync/list' }
     ]
 };
 

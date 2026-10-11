@@ -21,7 +21,7 @@ const findAdapter = (adapters: readonly ServiceAdapter[], service: ServiceId, in
     const adapter = resolveInstance(adapters, service, instance);
     if (!hasQueueRemove(adapter)) {
         throw new ServiceError('NotFound', service, `${service} has no download queue`, {
-            remedy: 'Queue items live on radarr, sonarr, sabnzbd, transmission and qbittorrent. Take a service and id from get_queue.'
+            remedy: 'Queue items live on radarr, sonarr, sabnzbd, transmission, qbittorrent and tidarr. Take a service and id from get_queue.'
         });
     }
     return adapter;
@@ -36,9 +36,9 @@ export function registerRemoveQueueItem(
         name: 'remove_queue_item',
         title: 'Remove a queue item',
         description:
-            'Removes one item from a download queue — the stuck-at-0%, wrong-release, or stalled download. Works against Radarr, Sonarr, SABnzbd, Transmission and qBittorrent; take `service` and `id` from get_queue. Optionally deletes partial data and, on Radarr and Sonarr only, blocklists the release so it will not be grabbed again. Previews by default — call again with the returned `confirm` token to actually remove it.',
+            'Removes one item from a download queue — the stuck-at-0%, wrong-release, or stalled download. Works against Radarr, Sonarr, SABnzbd, Transmission, qBittorrent and Tidarr; take `service` and `id` from get_queue. Tidarr always deletes the item\'s partial data, whatever `remove_from_client` says. Optionally deletes partial data and, on Radarr and Sonarr only, blocklists the release so it will not be grabbed again. Previews by default — call again with the returned `confirm` token to actually remove it.',
         inputSchema: z.object({
-            service: ServiceIdSchema.describe('radarr, sonarr, sabnzbd, transmission or qbittorrent.'),
+            service: ServiceIdSchema.describe('radarr, sonarr, sabnzbd, transmission, qbittorrent or tidarr.'),
             instance: z.string().optional().describe(INSTANCE_PARAM_DESCRIPTION),
             id: z.string().min(1).describe('The queue item id, exactly as get_queue reported it.'),
             remove_from_client: z
@@ -78,11 +78,18 @@ export function registerRemoveQueueItem(
                 });
             }
 
+            // What will happen, not what was asked: on a service with only one
+            // kind of removal, `false` would otherwise preview a promise the
+            // service cannot keep.
+            const deletesData = remove_from_client || adapter.removalDeletesData === true;
             const effects = [
-                remove_from_client
+                deletesData
                     ? `Removes it from ${adapter.id} and deletes any partial data already downloaded.`
                     : `Removes it from ${adapter.id}'s queue but leaves the download itself alone.`
             ];
+            if (!remove_from_client && adapter.removalDeletesData === true) {
+                effects.push(`remove_from_client: false is ignored: ${adapter.id} always deletes partial data on removal.`);
+            }
 
             // Accepting a flag that silently does nothing is how someone
             // believes a release is blocklisted for a year. Say it plainly.
@@ -101,7 +108,7 @@ export function registerRemoveQueueItem(
                 args: {
                     service: adapter.id,
                     id,
-                    removeFromClient: remove_from_client,
+                    removeFromClient: deletesData,
                     // The *effective* value, not the requested one, so the
                     // token and the audit row record what will actually happen
                     // rather than what was asked for on a service that cannot
