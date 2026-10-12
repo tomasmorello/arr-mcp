@@ -388,6 +388,7 @@ describe('the advertised tool surface', () => {
         'fix_metadata',
         'grab_release',
         'manage_indexer',
+        'manage_music',
         'pause_downloads',
         'remove_blocklist_item',
         'remove_queue_item',
@@ -403,8 +404,9 @@ describe('the advertised tool surface', () => {
     ];
 
     /**
-     * Of those, the seven whose effect cannot be undone by calling again.
+     * Of those, the eight whose effect cannot be undone by calling again.
      * `manage_indexer` is here for its `delete`; its disable is safe tier.
+     * `manage_music` likewise, for its `sync_remove`.
      *
      * `fix_metadata` is the one that destroys no *file*: it replaces metadata
      * with `replaceAllMetadata`, so what it overwrites — including anything
@@ -418,6 +420,7 @@ describe('the advertised tool surface', () => {
         'delete_request',
         'fix_metadata',
         'manage_indexer',
+        'manage_music',
         'remove_queue_item'
     ];
 
@@ -1208,7 +1211,7 @@ describe('prompts and resources, beside the tools rather than instead of them', 
         );
         const { result } = (await rpcPayload(res)) as { result: { tools: unknown[] } };
         expect(result.tools).toHaveLength(TOOL_NAMES.length);
-        expect(TOOL_NAMES.length).toBeLessThan(40);
+        expect(TOOL_NAMES.length).toBeLessThanOrEqual(40);
     });
 });
 

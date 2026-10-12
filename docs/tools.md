@@ -1,6 +1,6 @@
 # Tools
 
-Thirty-nine of them. The first nineteen read; the last twenty write, and are
+Forty of them. The first nineteen read; the last twenty-one write, and are
 off until you turn them on — see [writes](writes.md).
 
 | Tool | Answers |
@@ -37,6 +37,7 @@ off until you turn them on — see [writes](writes.md).
 | `update_media` | Change the profile, folder, monitoring or tags of something already there |
 | `fix_metadata` | Repair one item whose metadata does not describe its files |
 | `manage_indexer` | Add a public indexer, change its priority, profile, tags or seeding, stop grabbing from it, or delete it |
+| `manage_music` | Download this Tidal link, retry a download that never reached the library, or keep a playlist in sync — Tidarr |
 
 The rest of this page is the shape of the answers: the fields whose meaning is
 not obvious, and the places where a value is deliberately absent rather than
@@ -136,7 +137,7 @@ tool carries a title and an annotation: `readOnlyHint` on the nineteen that only
 read, and on the twenty writes `destructiveHint`, taken from the same permission
 tier the write gate itself runs on — so a tool cannot be gated as destructive
 and advertised as safe. A client deciding what to auto-approve, or what to warn
-about, reads those rather than guessing from thirty-nine similarly-shaped
+about, reads those rather than guessing from forty similarly-shaped
 descriptions. `idempotentHint` is deliberately absent: the confirmation token is
 single-use, so repeating a write does not repeat it, and neither answer would be
 true.
@@ -1291,6 +1292,13 @@ SABnzbd publishes a client-wide paused flag; for the two torrent clients
 all reads as *not* paused — nothing to pause is a different state from
 everything paused, and treating them alike would refuse a legitimate call.
 
+**Tidarr** pauses and resumes its whole queue, never one item, and has no
+speed limit — both are refused rather than accepted as no-ops. Pausing it is
+not free the way it is on the other three: Tidarr cancels the item it is
+downloading and discards what it had, so an album interrupted at track nine
+starts again from track one on resume. The preview says so in place of the
+usual "nothing is lost".
+
 The qBittorrent path is **spec-derived and unverified against a live
 instance**: there is no qBittorrent on the stack these adapters were probed
 against. v5 renamed `pause`/`resume` to `stop`/`start`, so both verbs are
@@ -1552,6 +1560,63 @@ tag.
 Safe tier. Every field is one the same tool sets back, and a move loses
 nothing: the undo is moving it back. A request that would change nothing is a
 no-op, and a request naming no field at all is refused rather than previewed.
+
+## `manage_music`
+
+Everything Tidarr does that the shared tools do not. Its queue, pausing it and
+removing one item are `get_queue`, `pause_downloads` and `remove_queue_item`,
+like any other download client; this tool is the rest, as one tool with an
+`action` to stay inside the tool budget.
+
+| `action` | Takes | Tier | Does |
+| --- | --- | --- | --- |
+| `add` | `url`, optional `quality` | safe | Downloads one album, track, video, playlist or mix |
+| `retry` | `id` from `get_queue` | safe | Re-runs tagging and the move into the library for one failed item, without downloading again |
+| `sync_add` | `url`, `quality`, optional `title` | safe | Has Tidarr re-download a playlist on its schedule, picking up new tracks |
+| `sync_remove` | `id` from `stack_health`'s `musicSync` | destructive | Stops syncing one playlist |
+| `sync_now` | — | safe | Runs every unpaused synced playlist now |
+
+**A link is validated, then rebuilt.** Only `tidal.com`, `www.tidal.com` and
+`listen.tidal.com` are accepted, with no credentials and no port, and the path
+has to name one thing by an id of the right shape. Tidarr is then handed
+`https://listen.tidal.com/<type>/<id>`, built here — never the string that was
+pasted. Share-sheet forms (`/browse/…`, a trailing `/u` or `?u`,
+`/album/1/track/2`) all resolve.
+
+**Never in bulk.** An artist link is refused, because Tidarr queues a whole
+discography from it as one entry; add the albums. Tidarr's `remove-all`,
+`remove-finished`, `retry-failed` and `sync/remove-all` have no action here, and
+nothing in the adapter can reach them.
+
+**The preview cannot name what a link is.** arr-mcp talks to Tidarr's own
+endpoints only and never calls Tidal, so "download album 251082404" is as much
+as it can say. It does say whether the item is already queued (a no-op), was
+already downloaded (it would be downloaded again), or failed before (`retry`
+may be cheaper), and whether the queue is paused.
+
+`quality` is `low` (AAC 96), `normal` (AAC 320), `high` (16-bit FLAC) or `max`
+(24-bit FLAC). Optional for `add`, where Tidarr's configured default applies;
+required for `sync_add`, because Tidarr queues a synced playlist with exactly
+the stored quality on every run and applies no default to it.
+
+`retry` is refused for an item that has not failed, rather than letting Tidarr
+answer a bare 500. A failed `get_queue` row says in `statusMessages` whether it
+failed after downloading — the case `retry` exists for — or while downloading,
+where it only helps if some tracks were saved.
+
+`sync_remove` is destructive because Tidarr keeps the entry's quality and sync
+history and has no undo short of adding it again by hand. Removing it never
+touches tracks already downloaded, or the playlist on Tidal.
+
+### What arr-mcp will not ask Tidarr
+
+`/api/settings` and `/api/tiddl/config` return the Tidal access and refresh
+tokens; `/api/api-key` returns the key arr-mcp itself authenticates with;
+`DELETE /api/token` logs Tidarr out of Tidal; the streaming endpoints are not
+something a model needs. None of them is called, for any reason — which is
+also why `stack_health` reports no Tidarr version: the only one Tidarr publishes
+sits beside those tokens. `test/tidarr.test.ts` asserts the full list of paths
+the adapter reaches.
 
 ## Prompts and resources
 

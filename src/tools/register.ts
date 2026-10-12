@@ -40,6 +40,7 @@ import { LibraryLoader } from './library.ts';
 import { registerLookupMedia } from './lookupMedia.ts';
 import { registerDeleteRequest, registerRespondToRequest } from './manageRequests.ts';
 import { registerManageIndexer } from './manageIndexer.ts';
+import { registerManageMusic } from './manageMusic.ts';
 import { registerPauseDownloads } from './pauseDownloads.ts';
 import { registerRemoveBlocklistItem } from './removeBlocklistItem.ts';
 import { registerRemoveQueueItem } from './removeQueueItem.ts';
@@ -216,6 +217,7 @@ export function registerAllTools(server: McpServer, context: ToolContext): void 
     registerFixMetadata(server, write, context.mediaServers, library);
     registerRemoveBlocklistItem(server, write, adapters);
     registerManageIndexer(server, write, adapters);
+    registerManageMusic(server, write, adapters);
 }
 
 /**
@@ -264,5 +266,6 @@ export const TOOL_NAMES = [
     'set_watched',
     'fix_metadata',
     'remove_blocklist_item',
-    'manage_indexer'
+    'manage_indexer',
+    'manage_music'
 ] as const;

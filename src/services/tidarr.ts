@@ -91,9 +91,9 @@ const STATUS: Record<string, string> = {
  */
 const STAGE_MESSAGE: Record<string, string> = {
     post_processing:
-        'failed after downloading, while tagging or moving the files — a post-processing retry re-runs that step without downloading again',
+        'failed after downloading, while tagging or moving the files — manage_music with action "retry" re-runs that step without downloading again',
     download:
-        'failed while downloading — a post-processing retry only helps if some tracks were already saved; otherwise remove it and add it again'
+        'failed while downloading — manage_music with action "retry" only helps if some tracks were already saved; otherwise remove it and add it again'
 };
 
 const isQuality = (value: string | undefined): value is TidalQuality =>
@@ -318,3 +318,57 @@ export class TidarrAdapter
 
 /** The one address Tidarr is ever handed for an item. */
 export const tidalUrl = (item: TidalItem): string => `https://listen.tidal.com/${item.type}/${item.id}`;
+
+/** Every host Tidal shares links from. Anything else is refused, not fetched. */
+const TIDAL_HOSTS = new Set(['tidal.com', 'www.tidal.com', 'listen.tidal.com']);
+
+/** What each kind of id looks like on Tidal. A path segment that fails these
+ *  is not an id, and nothing past this point ever sees it. */
+const ID_SHAPE: Record<string, RegExp> = {
+    album: /^\d{1,15}$/,
+    track: /^\d{1,15}$/,
+    video: /^\d{1,15}$/,
+    artist: /^\d{1,15}$/,
+    playlist: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    mix: /^[0-9a-z]{8,64}$/i
+};
+
+/**
+ * A Tidal share link, resolved to the one thing it names.
+ *
+ * Accepts the forms Tidal hands out — `tidal.com/album/1`,
+ * `tidal.com/browse/album/1`, `listen.tidal.com/album/1`, a trailing `/u` or
+ * `?u` from the share sheet, and `/album/1/track/2`, which names the track.
+ * The query string is dropped, and the caller rebuilds the URL with
+ * `tidalUrl`, so nothing typed here reaches Tidarr verbatim.
+ */
+export function parseTidalUrl(raw: string): TidalItem {
+    const refuse = (why: string): never => {
+        throw new ServiceError('NotFound', 'tidarr', `not a Tidal link Tidarr can download: ${why}`, {
+            remedy: 'Paste a share link such as https://tidal.com/album/251082404 or https://tidal.com/playlist/<uuid>.'
+        });
+    };
+
+    let url: URL;
+    try {
+        url = new URL(raw.trim());
+    } catch {
+        return refuse('it is not a URL');
+    }
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return refuse('it is not an http(s) link');
+    if (url.username !== '' || url.password !== '' || url.port !== '') return refuse('it carries credentials or a port');
+    if (!TIDAL_HOSTS.has(url.hostname.toLowerCase())) return refuse(`${url.hostname} is not a Tidal host`);
+
+    const segments = url.pathname.split('/').filter(s => s !== '');
+    if (segments[0] === 'browse') segments.shift();
+    if (segments.at(-1) === 'u') segments.pop();
+    // `/album/1/track/2` is a track seen from its album.
+    if (segments.length === 4 && segments[0] === 'album' && segments[2] === 'track') segments.splice(0, 2);
+    if (segments.length !== 2) return refuse('the path does not name one album, track, video, playlist, mix or artist');
+
+    const [type, id] = segments as [string, string];
+    const shape = ID_SHAPE[type];
+    if (shape === undefined) return refuse(`"${type}" is not something Tidarr downloads`);
+    if (!shape.test(id)) return refuse(`"${id}" is not a ${type} id`);
+    return { type, id: type === 'playlist' ? id.toLowerCase() : id };
+}

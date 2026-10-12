@@ -24,8 +24,8 @@ services:
     password: "…"
 ```
 
-All twelve service ids: `radarr`, `sonarr`, `whisparr`, `prowlarr`, `bazarr`, `jellyfin`,
-`seerr`, `sabnzbd`, `transmission`, `qbittorrent`, `plex`, `profilarr`. Configure only what you run —
+All thirteen service ids: `radarr`, `sonarr`, `whisparr`, `prowlarr`, `bazarr`, `jellyfin`,
+`seerr`, `sabnzbd`, `transmission`, `qbittorrent`, `plex`, `profilarr`, `tidarr`. Configure only what you run —
 anything you leave out is simply absent, not broken. Running both torrent
 clients at once is supported; their queues merge, each item labelled with the
 client it came from.
@@ -198,6 +198,30 @@ needs it configured to run at all. Leaving it out is fine — `get_profile_issue
 still reports its other five finding kinds, with a `note` saying drift was
 not checked.
 
+## Tidarr
+
+```yaml
+services:
+  tidarr:
+    url: http://192.168.1.20:8484
+    api_key: "…"
+    permissions:
+      safe_write: true      # add, retry, sync_add, sync_now, pause
+      destructive: false    # remove_queue_item and sync_remove
+```
+
+The key is the one Tidarr generates on first start: `docker exec tidarr cat
+/shared/.tidarr-api-key`, or Settings → Authentication in its web UI. arr-mcp
+sends it as an `X-Api-Key` header, never as the `?apikey=` query parameter
+Tidarr also accepts, which would reach proxy logs.
+
+Single instance only. Tidarr's queue merges into `get_queue`, its pause into
+`pause_downloads`, single-item removal into `remove_queue_item`, and its
+playlist sync state into `stack_health` at `detail: "full"`; `manage_music` is
+the rest. arr-mcp never reads Tidarr's settings, tiddl config or API key
+endpoints — the first two carry your Tidal tokens — so `stack_health` shows
+Tidarr without a version.
+
 ## Several instances of one service
 
 Running an HD and a 4K Radarr side by side is a common setup, and arr-mcp reads
@@ -240,14 +264,16 @@ is deliberate, and it only affects writes.
 a configuration you can express — each entry carries its own `permissions`
 block.
 
-**Five services stay single.** Jellyfin and Plex because each is one server,
+**Six services stay single.** Jellyfin and Plex because each is one server,
 and [running both](#plex-and-jellyfin-together) is a different thing from
 running two of one. Seerr because a
 request carries the identity of the person who made it, and a second Seerr makes
 "which one do I ask" a guess with an approver on the other end of it. Whisparr
 because the one deployment that wants two is V2 beside V3 (Eros), and Eros is a
 different API with no adapter. Profilarr because it is the one place that owns
-profile config, so two of them would mean two sources of truth.
+profile config, so two of them would mean two sources of truth. Tidarr
+because it keeps one queue and one sync list, and a second would make "download
+this album" ambiguous about which library it lands in.
 
 Everything else takes a list: Radarr, Sonarr, Bazarr, Prowlarr, SABnzbd,
 Transmission and qBittorrent.

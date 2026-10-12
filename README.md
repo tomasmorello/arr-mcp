@@ -6,7 +6,7 @@
 
 ### Talk to your entire media stack. One server, one endpoint, one conversation.
 
-**Radarr · Sonarr · Whisparr · Prowlarr · Bazarr · Jellyfin · Plex · Seerr · SABnzbd · Transmission · qBittorrent · Profilarr**
+**Radarr · Sonarr · Whisparr · Prowlarr · Bazarr · Jellyfin · Plex · Seerr · SABnzbd · Transmission · qBittorrent · Profilarr · Tidarr**
 
 [![Release](https://img.shields.io/github/v/release/bardesss/arr-mcp?style=flat-square&color=6f42c1)](https://github.com/bardesss/arr-mcp/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/bardesss/arr-mcp/ci.yml?branch=main&style=flat-square)](https://github.com/bardesss/arr-mcp/actions)
@@ -48,7 +48,7 @@ part it could not check rather than guessing across the hole.
 | 🛡️ **Indexer text is data, never instruction** | Release names from public indexers are attacker-controllable and flow straight into model context. arr-mcp fences every one of them. |
 | ✋ **Writes are opt-in, previewed, recorded** | Off until you turn them on, per service. Every write shows you exactly what it would do and waits for confirmation — and lands in an audit trail either way. |
 | 🖥️ **A config page that diagnoses** | Add services from a browser, see what is broken *and what to do about it*, read the logs and the write audit. No YAML required. |
-| 📚 **Thirty-nine tools, one vocabulary** | Every list pages the same way and answers readably whether or not your client reads `structuredContent`, every error names the config key that would fix it, every write takes ids rather than titles. |
+| 📚 **Forty tools, one vocabulary** | Every list pages the same way and answers readably whether or not your client reads `structuredContent`, every error names the config key that would fix it, every write takes ids rather than titles. |
 
 Nothing else in this space does the last five at all.
 
@@ -141,7 +141,7 @@ ARM NAS runs the same build as everything else.
 
 ## What you can ask it
 
-Thirty-eight tools, but you never name them — you ask, and the model picks:
+Forty tools, but you never name them — you ask, and the model picks:
 
 > *"What's downloading right now, and is anything stuck?"*
 > *"What aired this week that I haven't watched?"*
@@ -151,6 +151,7 @@ Thirty-eight tools, but you never name them — you ask, and the model picks:
 > *"Not that release — grab the 1080p remux instead."*
 > *"Why does this episode keep failing and never downloading?"*
 > *"Pause SABnzbd, I need the bandwidth for an hour."*
+> *"Download this album from Tidal in max quality."*
 > *"What are my seeding rules, and is anything still seeding past them?"*
 > *"That download finished days ago and never got imported — sort it out."*
 > *"Put this series on the 4K profile and only monitor future seasons."*
@@ -164,7 +165,7 @@ Thirty-eight tools, but you never name them — you ask, and the model picks:
 
 | | |
 | --- | --- |
-| **[Tools](docs/tools.md)** | All thirty-nine, what each answers, and the fields whose meaning is not obvious |
+| **[Tools](docs/tools.md)** | All forty, what each answers, and the fields whose meaning is not obvious |
 | **[Writes](docs/writes.md)** | Turning them on, the two tiers, and the preview-and-confirm handshake |
 | **[Configuration](docs/configuration.md)** | `config.yaml`, the seven services that take a list, Jellyfin's `default_user`, running Plex and Jellyfin side by side |
 | **[Config UI](docs/config-ui.md)** | The four pages, and what each does that is not obvious |
@@ -177,7 +178,8 @@ Thirty-eight tools, but you never name them — you ask, and the model picks:
 
 - At least one supported service, LAN-reachable: Radarr 4.0+, Sonarr 4.0+,
   Whisparr 2.x (V2 only, not Eros), Prowlarr 1.0+, Bazarr 1.4+, Jellyfin 10.9+, Plex Media Server 1.32+,
-  Seerr 1.0+, SABnzbd 3.0+, Transmission 3.0+, qBittorrent 4.1+, Profilarr 2.2.0+
+  Seerr 1.0+, SABnzbd 3.0+, Transmission 3.0+, qBittorrent 4.1+, Profilarr 2.2.0+,
+  Tidarr 1.2.7+
 - Docker, or Node 24+ to run from source
 - An MCP client speaking protocol revision `2026-07-28`
 

@@ -42,6 +42,7 @@ re-monitor it.
 | `set_watched` | safe | `safe_write` |
 | `remove_blocklist_item` | safe | `safe_write` |
 | `manage_indexer` | safe to add, edit, disable or enable; destructive to delete | `safe_write`, or `destructive` for `delete` |
+| `manage_music` | safe for every action but `sync_remove`, which is destructive | `safe_write` on `tidarr`, or `destructive` for `sync_remove` |
 | `remove_queue_item` | destructive | `destructive` |
 | `clean_queue` | destructive | `destructive` |
 | `delete_media` | destructive | `destructive` |
@@ -100,7 +101,7 @@ caller rather than found by an indexer. The link is validated before it reaches
 the client, and the preview says that nothing vetted it and nothing will import
 it.
 
-`manage_indexer` is the one tool whose tier depends on its arguments. Disabling
+`manage_indexer` and `manage_music` are the two tools whose tier depends on their arguments. Disabling
 an indexer is undone by enabling it, so it needs only `safe_write`; deleting it
 throws away the indexer's settings and credentials, so it needs `destructive`.
 They share a tool to stay inside the tool budget, not because they share a
